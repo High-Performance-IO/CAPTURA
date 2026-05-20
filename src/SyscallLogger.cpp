@@ -8,18 +8,20 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
+#define captura_syscall(nr, ...) SyscallLogger::syscallFn((nr), ##__VA_ARGS__)
+
 SyscallLogger::SyscallLogger() { ensureFileOpen(); }
 
 void SyscallLogger::rawWriteBytes(const char *buf, int len) {
     ensureFileOpen();
-    ::write(fileFD, buf, static_cast<size_t>(len));
+    captura_syscall(SYS_write, fileFD, buf, static_cast<size_t>(len));
 }
 
 void SyscallLogger::rawWriteStr(const char *buf) {
     rawWriteBytes(buf, static_cast<int>(::strlen(buf)));
 }
 
-std::string SyscallLogger::getLogFileName() const {
+std::string SyscallLogger::getLogFileName() {
     return filePath[0] != '\0' ? std::string(filePath) : std::string{};
 }
 
@@ -28,24 +30,24 @@ void SyscallLogger::ensureFileOpen() {
         return;
     }
 
-    ::snprintf(filePath, PATH_MAX, "%s/%s%ld.json", getHostLogDir(), getLogPrefix(),
-               ::syscall(SYS_gettid));
+    ::snprintf(filePath, PATH_MAX, "%s/%s%ld.log", getHostLogDir(), getLogPrefix(),
+               captura_syscall(SYS_gettid));
 
-    // Create directory hierarchy if needed.
-    ::mkdir(getLogDir(), 0755);
-    ::mkdir(getSyscallLogDir(), 0755);
-    ::mkdir(getHostLogDir(), 0755);
+    captura_syscall(SYS_mkdirat, AT_FDCWD, getLogDir(), 0755);
+    captura_syscall(SYS_mkdirat, AT_FDCWD, getSyscallLogDir(), 0755);
+    captura_syscall(SYS_mkdirat, AT_FDCWD, getHostLogDir(), 0755);
 
-    fileFD = ::open(filePath, O_CREAT | O_WRONLY | O_APPEND, 0644);
+    fileFD = static_cast<int>(
+        captura_syscall(SYS_openat, AT_FDCWD, filePath, O_CREAT | O_WRONLY | O_APPEND, 0644));
 
     if (fileFD == -1) {
         const char *prefix = "Captura: failed to open log file: ";
-        ::write(STDOUT_FILENO, prefix, ::strlen(prefix));
-        ::write(STDOUT_FILENO, filePath, ::strlen(filePath));
-        ::write(STDOUT_FILENO, " ", 1);
+        captura_syscall(SYS_write, STDOUT_FILENO, prefix, ::strlen(prefix));
+        captura_syscall(SYS_write, STDOUT_FILENO, filePath, ::strlen(filePath));
+        captura_syscall(SYS_write, STDOUT_FILENO, " ", 1UL);
         const char *err = ::strerror(errno);
-        ::write(STDOUT_FILENO, err, ::strlen(err));
-        ::write(STDOUT_FILENO, "\n", 1);
+        captura_syscall(SYS_write, STDOUT_FILENO, err, ::strlen(err));
+        captura_syscall(SYS_write, STDOUT_FILENO, "\n", 1UL);
         ::exit(EXIT_FAILURE);
     }
 }
@@ -92,8 +94,7 @@ const char *SyscallLogger::getSyscallLogDir() {
     static char *dir = nullptr;
     if (dir == nullptr) {
         const char *base = getLogDir();
-        // base + "/syscall" + NUL
-        dir              = new char[::strlen(base) + 9]{0};
+        dir              = new char[::strlen(base) + 9]{0}; // "/syscall\0"
         ::sprintf(dir, "%s/syscall", base);
     }
     return dir;
