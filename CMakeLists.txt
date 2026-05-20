@@ -19,7 +19,7 @@ add_library(captura_core INTERFACE)
 
 target_include_directories(captura_core
         INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:include/captura>
 )
 
@@ -90,7 +90,7 @@ install(
 )
 
 install(
-        DIRECTORY include/
+        DIRECTORY captura/
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/captura
 )
 

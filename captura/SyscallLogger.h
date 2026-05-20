@@ -15,14 +15,6 @@
 #include "BaseLogger.h"
 #include "JsonBaseLogger.h"
 
-/**
- * Adapter that writes structured JSON log output using raw syscalls.
- * Intended for the syscall-interceptor build (__CAPTURA_POSIX).
- * Header-only: all methods are inline.
- *
- * Call SyscallLogger::setSyscallFn(syscall_no_intercept) before any
- * logging starts to redirect syscalls through a custom implementation.
- */
 struct SyscallLogger : JsonLogBase<SyscallLogger> {
 
     // thread_local file state — initial-exec TLS model required for
@@ -52,11 +44,6 @@ struct SyscallLogger : JsonLogBase<SyscallLogger> {
     }
 
   private:
-    // ------------------------------------------------------------------
-    //  Syscall dispatch helpers
-    //  Integer args widen via static_cast; pointer args go through
-    //  reinterpret_cast.  Variadic template avoids GNU ##__VA_ARGS__.
-    // ------------------------------------------------------------------
 
     template <typename T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
     static long to_arg(T v) {
@@ -71,9 +58,6 @@ struct SyscallLogger : JsonLogBase<SyscallLogger> {
         return syscallFn(nr, to_arg(args)...);
     }
 
-    // ------------------------------------------------------------------
-    //  File open
-    // ------------------------------------------------------------------
 
     static void ensureFileOpen() {
         if (fileFD != -1) {
@@ -96,10 +80,6 @@ struct SyscallLogger : JsonLogBase<SyscallLogger> {
             ::exit(EXIT_FAILURE);
         }
     }
-
-    // ------------------------------------------------------------------
-    //  Path helpers — function-local statics, initialised once
-    // ------------------------------------------------------------------
 
     static const char *getHostname() {
         static char h[HOST_NAME_MAX]{'\0'};
@@ -160,10 +140,6 @@ inline thread_local
 
 using Logger = TemplateLogger<SyscallLogger>;
 
-// -------------------------------------------------------------------------
-//  Macros — POSIX / syscall-interceptor build
-// -------------------------------------------------------------------------
-
 #ifdef CAPTURA_LOG
 
 #define LOG(message, ...) log.log(message, ##__VA_ARGS__)
@@ -190,6 +166,6 @@ using Logger = TemplateLogger<SyscallLogger>;
 #define ENABLE_LOGGER()
 #define DISABLE_LOGGER()
 
-#endif // CAPTURA_LOG
+#endif
 
-#endif // CAPTURA_SYSCALLLOGGER_H
+#endif

@@ -13,11 +13,6 @@
 #include "BaseLogger.h"
 #include "JsonBaseLogger.h"
 
-/**
- * Adapter that writes structured JSON log output using std::ofstream.
- * Suitable for server processes and any context where STL I/O is safe.
- * Header-only: all methods are inline.
- */
 struct StlLogger : JsonLogBase<StlLogger> {
 
     inline static thread_local std::ofstream *logfile   = nullptr;
@@ -73,10 +68,6 @@ struct StlLogger : JsonLogBase<StlLogger> {
 };
 
 using Logger = TemplateLogger<StlLogger>;
-
-// -------------------------------------------------------------------------
-//  Macros — STL / server build
-// -------------------------------------------------------------------------
 
 #ifdef CAPTURA_LOG
 
