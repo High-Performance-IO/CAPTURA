@@ -127,8 +127,8 @@ inline thread_local
 #define ERR_EXIT_EXCEPT_CHOICE(raise_exception, message, ...)                                      \
     log.log(message, ##__VA_ARGS__);                                                               \
     if (!continue_on_error) {                                                                      \
-        char err_msg[CAPIO_LOG_MAX_MSG_LEN];                                                       \
-        snprintf(err_msg, CAPIO_LOG_MAX_MSG_LEN, message, ##__VA_ARGS__);                          \
+        char err_msg[CAPTURA_LOG_MAX_MSG_LEN];                                                     \
+        snprintf(err_msg, CAPTURA_LOG_MAX_MSG_LEN, message, ##__VA_ARGS__);                        \
         raise_termination(raise_exception, err_msg);                                               \
     }
 #define ERR_EXIT(message, ...) ERR_EXIT_EXCEPT_CHOICE(true, message, ##__VA_ARGS__)
@@ -137,7 +137,7 @@ inline thread_local
 
 #define ERR_EXIT_EXCEPT_CHOICE(raise_exception, message, ...)                                      \
     if (!continue_on_error) {                                                                      \
-        char err_msg[CAPIO_LOG_MAX_MSG_LEN];                                                       \
+        char err_msg[CAPTURA_LOG_MAX_MSG_LEN];                                                     \
         snprintf(err_msg, sizeof(err_msg), message, ##__VA_ARGS__);                                \
         raise_termination(raise_exception, err_msg);                                               \
     }
