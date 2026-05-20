@@ -2,6 +2,7 @@
 #define CAPTURA_STDOUTLOGGER_H
 
 #include <chrono>
+#include <climits>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
@@ -12,20 +13,17 @@
 
 #include "BaseLogger.h"
 
-#define CAPTURA_COLOR_RESET "\033[0m"
-#define CAPTURA_COLOR_RED "\033[31m"
-#define CAPTURA_COLOR_GREEN "\033[32m"
-#define CAPTURA_COLOR_YELLOW "\033[33m"
-#define CAPTURA_COLOR_BLUE "\033[34m"
-#define CAPTURA_COLOR_MAGENTA "\033[35m"
-#define CAPTURA_COLOR_CYAN "\033[36m"
-#define CAPTURA_COLOR_WHITE "\033[37m"
-#define CAPTURA_COLOR_BOLD "\033[1m"
+// Cli pre messages
+constexpr char CAPIO_LOG_SERVER_CLI_LEVEL_RESET[] = "\033[0m";
+constexpr char CAPTURA_CLI_LEVEL_STATUS[]         = "\033[1;34m";
+constexpr char CAPTURA_CLI_LEVEL_INFO[]           = "\033[1;32m";
+constexpr char CAPTURA_CLI_LEVEL_WARNING[]        = "\033[1;33m";
+constexpr char CAPTURA_CLI_LEVEL_ERROR[]          = "\033[1;31m";
 
 struct StdoutLoggerOptions {
-    const char *color         = CAPTURA_COLOR_RESET;
-    const char *workflowName  = "CAPTURA";
-    const char *componentName = "CAPTURA";
+    std::string color         = CAPIO_LOG_SERVER_CLI_LEVEL_RESET;
+    std::string workflowName  = "NOT SET";
+    std::string componentName = "NOT SET";
     bool printHeader          = true;
     bool useColor             = true;
 };
@@ -97,32 +95,23 @@ struct StdoutLogger {
         const auto now = std::chrono::system_clock::now();
         const auto t   = std::chrono::system_clock::to_time_t(now);
 
-        const bool color = options.useColor && options.color != nullptr && options.color[0] != '\0';
+        const bool color = options.useColor && !options.color.empty() && options.color[0] != '\0';
 
-        if (color) {
-            std::cout << options.color;
-        }
-
-        std::cout << "[" << options.workflowName << "]";
-
-        if (color) {
-            std::cout << CAPTURA_COLOR_RESET;
-        }
-
-        std::cout << " [" << std::put_time(std::localtime(&t), "%Y-%m-%d %H:%M:%S") << "] "
-                  << hostname << "@" << std::left << std::setw(20)
-                  << std::string(options.componentName).substr(0, 20) << " | ";
-
-        if (color) {
-            std::cout << options.color;
-        }
+        std::cout << "[" << options.componentName << " " << hostname << "] "
+                  << std::put_time(std::localtime(&t), "%Y-%m-%d %H:%M:%S") << "("
+                  << options.workflowName << ")" << std::left << " | ";
 
         // Invoker + message, matching the style of the original server_println.
-        std::cout << std::left << std::setw(30) << std::string(invoker).substr(0, 30) << " | "
-                  << message;
+        std::cout << std::left << std::setw(30) << std::string(invoker).substr(0, 30) << " | ";
 
         if (color) {
-            std::cout << CAPTURA_COLOR_RESET;
+            std::cout << options.color;
+        }
+
+        std::cout << message;
+
+        if (color) {
+            std::cout << CAPIO_LOG_SERVER_CLI_LEVEL_RESET;
         }
 
         std::cout << '\n' << std::flush;
@@ -138,10 +127,10 @@ using CapturaCliLogger = TemplateLogger<StdoutLogger>;
         StdoutLogger::printLine(__func__, _captura_buf);                                           \
     } while (0)
 
-#define CAPTURA_PRINT_COLOR(color, message, ...)                                                   \
+#define CAPTURA_PRINT_COLOR(status, message, ...)                                                  \
     do {                                                                                           \
-        const char *_captura_saved  = StdoutLogger::options.color;                                 \
-        StdoutLogger::options.color = (color);                                                     \
+        auto _captura_saved         = StdoutLogger::options.color;                                 \
+        StdoutLogger::options.color = (status);                                                    \
         char _captura_buf[CAPTURA_LOG_MAX_MSG_LEN];                                                \
         ::snprintf(_captura_buf, sizeof(_captura_buf), message, ##__VA_ARGS__);                    \
         StdoutLogger::printLine(__func__, _captura_buf);                                           \
