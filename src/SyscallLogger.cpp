@@ -8,7 +8,18 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-#define captura_syscall(nr, ...) SyscallLogger::syscallFn((nr), ##__VA_ARGS__)
+// Convert any integral type to long.
+template <typename T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
+static long to_syscall_arg(T v) {
+    return static_cast<long>(v);
+}
+
+template <typename T> static long to_syscall_arg(T *v) { return reinterpret_cast<long>(v); }
+template <typename T> static long to_syscall_arg(const T *v) { return reinterpret_cast<long>(v); }
+
+template <typename... Args> static long captura_syscall(long nr, Args &&...args) {
+    return SyscallLogger::syscallFn(nr, to_syscall_arg(args)...);
+}
 
 SyscallLogger::SyscallLogger() { ensureFileOpen(); }
 
