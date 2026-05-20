@@ -130,35 +130,23 @@ struct StdoutLogger {
     }
 };
 
-using CliLogger = TemplateLogger<StdoutLogger>;
+using CapturaCliLogger = TemplateLogger<StdoutLogger>;
 
-#ifdef CAPTURA_LOG
+#define CAPTURA_PRINT(message, ...)                                                                \
+    do {                                                                                           \
+        char _captura_buf[CAPIO_LOG_MAX_MSG_LEN];                                                  \
+        ::snprintf(_captura_buf, sizeof(_captura_buf), message, ##__VA_ARGS__);                    \
+        StdoutLogger::printLine(__func__, _captura_buf);                                           \
+    } while (0)
 
-#define LOG(message, ...) log.log(message, ##__VA_ARGS__)
-
-#define START_LOG(tid, message, ...)                                                               \
-    Logger::reset_log_level();                                                                     \
-    Logger log(__func__, __FILE__, __LINE__, tid, message, ##__VA_ARGS__)
-
-#define ENABLE_LOGGER() enable_logger = true
-#define DISABLE_LOGGER()                                                                           \
-    SyscallLoggingSuspender sls {}
-
-#define DBG(tid, lambda)                                                                           \
-    {                                                                                              \
-        START_LOG(tid, "[  DBG  ]~~~ START ~~~[  DBG  ]");                                         \
-        lambda;                                                                                    \
-        LOG("[  DBG  ]~~~ END   ~~~[  DBG  ]");                                                    \
-    }
-
-#else
-
-#define LOG(message, ...)
-#define START_LOG(tid, message, ...)
-#define DBG(tid, lambda)
-#define ENABLE_LOGGER()
-#define DISABLE_LOGGER()
-
-#endif // CAPTURA_LOG
+#define CAPTURA_PRINT_COLOR(color, message, ...)                                                   \
+    do {                                                                                           \
+        const char *_captura_saved  = StdoutLogger::options.color;                                 \
+        StdoutLogger::options.color = (color);                                                     \
+        char _captura_buf[CAPIO_LOG_MAX_MSG_LEN];                                                  \
+        ::snprintf(_captura_buf, sizeof(_captura_buf), message, ##__VA_ARGS__);                    \
+        StdoutLogger::printLine(__func__, _captura_buf);                                           \
+        StdoutLogger::options.color = _captura_saved;                                              \
+    } while (0)
 
 #endif // CAPTURA_STDOUTLOGGER_H
