@@ -8,67 +8,56 @@
 
 #include "constants.h"
 
-template<typename Derived>
-struct JsonLogBase {
+template <typename Derived> struct JsonLogBase {
     static thread_local int nestingDepth;
     static thread_local bool rootArrayOpen;
     static thread_local int pendingLen;
     static thread_local char pendingBuf[CAPIO_LOG_MAX_MSG_LEN * 6 + 256];
 
-
-    static void printFormatted(unsigned long int timestamp,
-                               const char *invoker, const char *file,
+    static void printFormatted(unsigned long int timestamp, const char *invoker, const char *file,
                                int line, const char * /*output_template*/,
                                const char *message_format, va_list args) {
         char escaped_args[CAPIO_LOG_MAX_MSG_LEN * 6];
-        expandAndEscape(message_format, args, escaped_args,
-                        static_cast<int>(sizeof(escaped_args)));
+        expandAndEscape(message_format, args, escaped_args, static_cast<int>(sizeof(escaped_args)));
 
         char escaped_invoker[512];
-        jsonEscape(invoker, static_cast<int>(::strlen(invoker)),
-                   escaped_invoker, sizeof(escaped_invoker));
+        jsonEscape(invoker, static_cast<int>(::strlen(invoker)), escaped_invoker,
+                   sizeof(escaped_invoker));
 
         char escaped_file[512];
-        jsonEscape(file, static_cast<int>(::strlen(file)),
-                   escaped_file, sizeof(escaped_file));
+        jsonEscape(file, static_cast<int>(::strlen(file)), escaped_file, sizeof(escaped_file));
 
         flushPending(true);
 
         const int indent = indentSize();
-        char *p = pendingBuf;
-        for (int i = 0; i < indent; ++i) { *p++ = ' '; }
-        p += ::snprintf(p,
-                        sizeof(pendingBuf)
-                        - static_cast<size_t>(indent) - 1,
+        char *p          = pendingBuf;
+        for (int i = 0; i < indent; ++i) {
+            *p++ = ' ';
+        }
+        p += ::snprintf(p, sizeof(pendingBuf) - static_cast<size_t>(indent) - 1,
                         "{ \"ts\": %lu, \"invoker\": \"%s\","
                         " \"file\": \"%s\", \"line\": %d, \"args\": \"%s\" }",
-                        timestamp, escaped_invoker, escaped_file,
-                        line, escaped_args);
-        pendingLen =
-                static_cast<int>(p - pendingBuf);
+                        timestamp, escaped_invoker, escaped_file, line, escaped_args);
+        pendingLen = static_cast<int>(p - pendingBuf);
     }
 
-    static void writeOpening(unsigned long int timestamp,
-                             const char *invoker, const char *file,
-                             int line, const char *message_format,
-                             va_list args) {
+    static void writeOpening(unsigned long int timestamp, const char *invoker, const char *file,
+                             int line, const char *message_format, va_list args) {
         if (!rootArrayOpen) {
             Derived::rawWriteStr("[\n");
             rootArrayOpen = true;
-            nestingDepth = 1;
+            nestingDepth  = 1;
         }
 
         char escaped_args[CAPIO_LOG_MAX_MSG_LEN * 6];
-        expandAndEscape(message_format, args, escaped_args,
-                        static_cast<int>(sizeof(escaped_args)));
+        expandAndEscape(message_format, args, escaped_args, sizeof(escaped_args));
 
         char escaped_invoker[512];
-        jsonEscape(invoker, static_cast<int>(::strlen(invoker)),
-                   escaped_invoker, static_cast<int>(sizeof(escaped_invoker)));
+        jsonEscape(invoker, static_cast<int>(::strlen(invoker)), escaped_invoker,
+                   static_cast<int>(sizeof(escaped_invoker)));
 
         char escaped_file[512];
-        jsonEscape(file, static_cast<int>(::strlen(file)),
-                   escaped_file, sizeof(escaped_file));
+        jsonEscape(file, static_cast<int>(::strlen(file)), escaped_file, sizeof(escaped_file));
 
         flushPending(true); // close previous sibling object with ","
 
@@ -87,13 +76,10 @@ struct JsonLogBase {
         pendingLen = 0;
     }
 
-    /**
-     * Called by TemplateLogger destructor (current_log_level == 1).
-     * Closes the "events" array, emits "ts_exit", and stores the closing
-     * "}" as a pending line so the next sibling gets a leading comma.
-     */
     static void writeEpilogue(unsigned long int timestamp) {
-        if (JsonLogBase<Derived>::nestingDepth < 2) { return; }
+        if (nestingDepth < 2) {
+            return;
+        }
 
         flushPending(false); // last event — no trailing comma
 
@@ -109,28 +95,34 @@ struct JsonLogBase {
         // Store closing "}" as pending so the next writeOpening can
         // prepend "," to it when a sibling object follows.
         nestingDepth--;
-        char *p = pendingBuf;
+        char *p          = pendingBuf;
         const int indent = indentSize();
-        for (int i = 0; i < indent; ++i) { *p++ = ' '; }
-        *p++ = '}';
-        pendingLen =
-                static_cast<int>(p - pendingBuf);
+        for (int i = 0; i < indent; ++i) {
+            *p++ = ' ';
+        }
+        *p++       = '}';
+        pendingLen = static_cast<int>(p - pendingBuf);
     }
 
-protected:
+  protected:
     static void flushPending(bool withComma) {
-        if (pendingLen <= 0) { return; }
-        Derived::rawWriteBytes(pendingBuf,
-                               pendingLen);
+        if (pendingLen <= 0) {
+            return;
+        }
+        Derived::rawWriteBytes(pendingBuf, pendingLen);
         Derived::rawWriteStr(withComma ? ",\n" : "\n");
         pendingLen = 0;
     }
 
     static void writeImmediate(const char *buf, int len = -1) {
-        if (len < 0) { len = static_cast<int>(::strlen(buf)); }
+        if (len < 0) {
+            len = static_cast<int>(::strlen(buf));
+        }
         const int indent = indentSize();
-        char spaces[65] = {0};
-        for (int i = 0; i < indent; ++i) { spaces[i] = ' '; }
+        char spaces[65]  = {0};
+        for (int i = 0; i < indent; ++i) {
+            spaces[i] = ' ';
+        }
         Derived::rawWriteBytes(spaces, indent);
         Derived::rawWriteBytes(buf, len);
         Derived::rawWriteStr("\n");
@@ -152,8 +144,7 @@ protected:
         writeImmediate(buf);
     }
 
-    static void writeFieldUL(const char *key, const char *fmt,
-                             unsigned long val) {
+    static void writeFieldUL(const char *key, const char *fmt, unsigned long val) {
         char tmp[64];
         ::snprintf(tmp, sizeof(tmp), fmt, val);
         char buf[128];
@@ -166,8 +157,7 @@ protected:
         return n < 64 ? n : 64;
     }
 
-    static void expandAndEscape(const char *fmt, va_list args,
-                                char *dst, int dst_size) {
+    static void expandAndEscape(const char *fmt, va_list args, char *dst, int dst_size) {
         va_list copy;
         va_copy(copy, args);
         const int raw_len = ::vsnprintf(nullptr, 0, fmt, copy);
@@ -181,8 +171,7 @@ protected:
         jsonEscape(raw.c_str(), raw_len, dst, dst_size);
     }
 
-    static void jsonEscape(const char *src, int src_len,
-                           char *dst, int dst_size) {
+    static void jsonEscape(const char *src, int src_len, char *dst, int dst_size) {
         int di = 0;
         for (int si = 0; si < src_len && di + 7 < dst_size; ++si) {
             const unsigned char c = static_cast<unsigned char>(src[si]);
@@ -217,14 +206,10 @@ protected:
     }
 };
 
-
-template<typename D>
-thread_local int JsonLogBase<D>::nestingDepth = 0;
-template<typename D>
-thread_local bool JsonLogBase<D>::rootArrayOpen = false;
-template<typename D>
-thread_local int JsonLogBase<D>::pendingLen = 0;
-template<typename D>
+template <typename D> thread_local int JsonLogBase<D>::nestingDepth   = 0;
+template <typename D> thread_local bool JsonLogBase<D>::rootArrayOpen = false;
+template <typename D> thread_local int JsonLogBase<D>::pendingLen     = 0;
+template <typename D>
 thread_local char JsonLogBase<D>::pendingBuf[CAPIO_LOG_MAX_MSG_LEN * 6 + 256] = {'\0'};
 
 #endif // CAPTURA_JSONBASELOGGER_H

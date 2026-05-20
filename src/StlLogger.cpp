@@ -1,13 +1,11 @@
 #include "StlLogger.h"
 
+#include <climits>
 #include <cstdlib>
 #include <cstring>
 #include <unistd.h>
-#include <climits>
-
 
 StlLogger::StlLogger() { ensureFileOpen(); }
-
 
 void StlLogger::rawWriteBytes(const char *buf, int len) {
     ensureFileOpen();
@@ -19,13 +17,12 @@ void StlLogger::rawWriteStr(const char *buf) {
     rawWriteBytes(buf, static_cast<int>(::strlen(buf)));
 }
 
-std::string StlLogger::getLogFileName() {
-    return logFileName ? *logFileName : std::string{};
-}
-
+std::string StlLogger::getLogFileName() { return logFileName ? *logFileName : std::string{}; }
 
 void StlLogger::ensureFileOpen() {
-    if (logfile != nullptr && logfile->is_open()) { return; }
+    if (logfile != nullptr && logfile->is_open()) {
+        return;
+    }
 
     std::string logDir;
     std::string prefix;
@@ -48,9 +45,8 @@ void StlLogger::ensureFileOpen() {
     const std::filesystem::path outputFolder{logDir + "/stl/" + hostname};
     std::filesystem::create_directories(outputFolder);
 
-    const std::filesystem::path path =
-            outputFolder / (prefix + std::to_string(gettid()) + ".json");
+    const std::filesystem::path path = outputFolder / (prefix + std::to_string(gettid()) + ".json");
 
-    logfile = new std::ofstream(path, std::ofstream::app);
+    logfile     = new std::ofstream(path, std::ofstream::app);
     logFileName = new std::string(path.string());
 }

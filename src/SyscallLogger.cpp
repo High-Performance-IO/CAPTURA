@@ -2,12 +2,11 @@
 
 #include <cerrno>
 #include <cstdio>
-#include <cstring>
 #include <cstdlib>
-#include <unistd.h>
+#include <cstring>
 #include <fcntl.h>
 #include <sys/syscall.h>
-
+#include <unistd.h>
 
 SyscallLogger::SyscallLogger() { ensureFileOpen(); }
 
@@ -25,35 +24,37 @@ std::string SyscallLogger::getLogFileName() const {
 }
 
 void SyscallLogger::ensureFileOpen() {
-    if (fileFD != -1) { return; }
+    if (fileFD != -1) {
+        return;
+    }
 
-    ::snprintf(filePath, PATH_MAX, "%s/%s%ld.json",
-               getHostLogDir(), getLogPrefix(),
+    ::snprintf(filePath, PATH_MAX, "%s/%s%ld.json", getHostLogDir(), getLogPrefix(),
                ::syscall(SYS_gettid));
 
     // Create directory hierarchy if needed.
-    ::mkdir(getLogDir(),        0755);
+    ::mkdir(getLogDir(), 0755);
     ::mkdir(getSyscallLogDir(), 0755);
-    ::mkdir(getHostLogDir(),    0755);
+    ::mkdir(getHostLogDir(), 0755);
 
     fileFD = ::open(filePath, O_CREAT | O_WRONLY | O_APPEND, 0644);
 
     if (fileFD == -1) {
         const char *prefix = "Captura: failed to open log file: ";
-        ::write(STDOUT_FILENO, prefix,   ::strlen(prefix));
+        ::write(STDOUT_FILENO, prefix, ::strlen(prefix));
         ::write(STDOUT_FILENO, filePath, ::strlen(filePath));
-        ::write(STDOUT_FILENO, " ",      1);
+        ::write(STDOUT_FILENO, " ", 1);
         const char *err = ::strerror(errno);
-        ::write(STDOUT_FILENO, err,  ::strlen(err));
+        ::write(STDOUT_FILENO, err, ::strlen(err));
         ::write(STDOUT_FILENO, "\n", 1);
         ::exit(EXIT_FAILURE);
     }
 }
 
-
 const char *SyscallLogger::getHostname() {
     static char hostname[HOST_NAME_MAX]{'\0'};
-    if (hostname[0] == '\0') { ::gethostname(hostname, HOST_NAME_MAX); }
+    if (hostname[0] == '\0') {
+        ::gethostname(hostname, HOST_NAME_MAX);
+    }
     return hostname;
 }
 
@@ -92,7 +93,7 @@ const char *SyscallLogger::getSyscallLogDir() {
     if (dir == nullptr) {
         const char *base = getLogDir();
         // base + "/syscall" + NUL
-        dir = new char[::strlen(base) + 9]{0};
+        dir              = new char[::strlen(base) + 9]{0};
         ::sprintf(dir, "%s/syscall", base);
     }
     return dir;
@@ -102,7 +103,7 @@ const char *SyscallLogger::getHostLogDir() {
     static char *dir = nullptr;
     if (dir == nullptr) {
         const char *parent = getSyscallLogDir();
-        dir = new char[::strlen(parent) + HOST_NAME_MAX]{0};
+        dir                = new char[::strlen(parent) + HOST_NAME_MAX]{0};
         ::sprintf(dir, "%s/%s", parent, getHostname());
     }
     return dir;
