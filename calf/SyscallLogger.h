@@ -25,12 +25,8 @@ struct SyscallLogger : JsonLogBase<SyscallLogger> {
     // Syscall function pointer — defaults to ::syscall.
     using SyscallFn                        = long (*)(long, ...);
     inline static SyscallFn syscallFn      = ::syscall;
-    inline static char component_name[128] = "NOT_SET";
 
     static void setSyscallFn(SyscallFn fn) { syscallFn = fn; }
-    static void setComponentName(const char *name) {
-        ::strncpy(component_name, name, strlen(component_name));
-    }
 
     explicit SyscallLogger() { ensureFileOpen(); }
 
@@ -171,6 +167,7 @@ using Logger = TemplateLogger<SyscallLogger>;
 #define ENABLE_LOGGER()
 #define DISABLE_LOGGER()
 #define SET_CALF_SYSCALL_HANDLER(syscall_ptr)
+#define SET_CALF_COMPONENT_NAME(name)
 
 #endif
 

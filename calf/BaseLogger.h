@@ -53,6 +53,7 @@ class SyscallLoggingSuspender {
 
 template <typename Adapter> class TemplateLogger {
     static thread_local __attribute__((tls_model("initial-exec"))) int current_log_level;
+    inline static char component_name[128] = "NOT_SET";
 
     char invoker[256]{0};
     char file[256]{0};
@@ -95,6 +96,11 @@ template <typename Adapter> class TemplateLogger {
         adapter.writeEpilogue(static_cast<unsigned long>(current_time_in_millis()));
 
         current_log_level--;
+    }
+
+    static void setComponentName(const char *name) {
+        ::strncpy(component_name, name, sizeof(component_name) - 1);
+        component_name[sizeof(component_name) - 1] = '\0';
     }
 
     void log(const char *message, ...) {
