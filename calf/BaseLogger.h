@@ -77,13 +77,10 @@ template <typename Adapter> class TemplateLogger {
 
         va_list argp;
         va_start(argp, message);
-        if (current_log_level == 1) {
-            adapter.writeOpening(current_time_in_millis(), this->invoker, this->file, this->line,
-                                 message, argp);
-        } else {
-            adapter.printFormatted(current_time_in_millis(), this->invoker, this->file, this->line,
-                                   CALF_LOG_PRE_MSG, message, argp);
-        }
+
+        adapter.writeOpening(current_time_in_millis(), this->invoker, this->file, this->line,
+                             message, argp);
+
         va_end(argp);
     }
 
@@ -95,9 +92,8 @@ template <typename Adapter> class TemplateLogger {
             return;
         }
 
-        if (current_log_level == 1) {
-            adapter.writeEpilogue(static_cast<unsigned long>(current_time_in_millis()));
-        }
+        adapter.writeEpilogue(static_cast<unsigned long>(current_time_in_millis()));
+
         current_log_level--;
     }
 
@@ -127,8 +123,8 @@ inline thread_local
 #define ERR_EXIT_EXCEPT_CHOICE(raise_exception, message, ...)                                      \
     log.log(message, ##__VA_ARGS__);                                                               \
     if (!continue_on_error) {                                                                      \
-        char err_msg[CALF_LOG_MAX_MSG_LEN];                                                     \
-        snprintf(err_msg, CALF_LOG_MAX_MSG_LEN, message, ##__VA_ARGS__);                        \
+        char err_msg[CALF_LOG_MAX_MSG_LEN];                                                        \
+        snprintf(err_msg, CALF_LOG_MAX_MSG_LEN, message, ##__VA_ARGS__);                           \
         raise_termination(raise_exception, err_msg);                                               \
     }
 #define ERR_EXIT(message, ...) ERR_EXIT_EXCEPT_CHOICE(true, message, ##__VA_ARGS__)
@@ -137,7 +133,7 @@ inline thread_local
 
 #define ERR_EXIT_EXCEPT_CHOICE(raise_exception, message, ...)                                      \
     if (!continue_on_error) {                                                                      \
-        char err_msg[CALF_LOG_MAX_MSG_LEN];                                                     \
+        char err_msg[CALF_LOG_MAX_MSG_LEN];                                                        \
         snprintf(err_msg, sizeof(err_msg), message, ##__VA_ARGS__);                                \
         raise_termination(raise_exception, err_msg);                                               \
     }
