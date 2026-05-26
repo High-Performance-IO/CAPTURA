@@ -35,14 +35,6 @@ struct StdoutLogger {
     static void setColor(const char *color) { options.color = color; }
     static void setPrintHeader(bool v) { options.printHeader = v; }
 
-    explicit StdoutLogger() {
-        if (!::isatty(STDOUT_FILENO)) {
-            options.useColor = false;
-        }
-    }
-
-    std::string getLogFileName() const { return "stdout"; }
-
     static void writeOpening(unsigned long int /*timestamp*/, const char *invoker,
                              const char * /*file*/, int /*line*/, const char *message_format,
                              va_list args) {
